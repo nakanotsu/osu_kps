@@ -47,16 +47,16 @@ def timer():
 	kps_label_updater = str(kps_)
 	window.KPS_DISPLAY.SetLabel('<KPS>: ' + kps_label_updater)
 
-	if _e >= bound+rate*10:
-		reset()	
-		clock.stop()
-		if kps_ > max_kps:
-			max_kps = kps_
-			kps_max_label_updater = str(max_kps)
-			window.KPS_MAX_DISPLAY.SetLabel('<MAX_KPS>: ' + kps_max_label_updater)
-			
+	if kps_ > max_kps:
+		max_kps = kps_
+		kps_max_label_updater = str(max_kps)
+		window.KPS_MAX_DISPLAY.SetLabel('<MAX_KPS>: ' + kps_max_label_updater)
+
+	if _e >= bound+rate*10:		
 		window.KPS_DISPLAY.SetLabel('<KPS>: 0')
 		print('timer stoped, max kps:', max_kps)
+		reset()	
+		clock.stop()
 
 
 def clockSchedule():
