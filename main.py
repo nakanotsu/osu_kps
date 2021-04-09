@@ -2,10 +2,10 @@
 import keyboard
 import time
 import math
-import wx
-from twisted.internet import wxreactor
+# import wx
+# from twisted.internet import wxreactor
 # install before importing reactor.
-wxreactor.install() 
+# wxreactor.install() 
 from twisted.internet import task, reactor
 import sys
 import warnings
@@ -17,7 +17,10 @@ win_size = 300, 200
 
 last = [0,0]
 elapsed = 0
+no_events_e = 0
+elapsed_chain = []
 bound = 1
+clock2_bound = 0.7
 rate = 0.005
 k = 0
 max_kps = 0
@@ -27,45 +30,78 @@ kps_max_label_updater = ''
 
 ''' TIMER '''
 timerRunning = False
+timer2Running = False
 timerStarted = False
 
+def updateText():
+	global kps_label_updater
+	global kps_max_label_updater
+	window.KPS_DISPLAY.SetLabel('<KPS>: ' + kps_label_updater)
+	window.KPS_MAX_DISPLAY.SetLabel('<MAX_KPS>: ' + kps_max_label_updater)
+	f = open("kps.txt", "w")
+	f2 = open("max_kps.txt", "w")
+	f.write(kps_label_updater)
+	f2.write(kps_max_label_updater)
+	f.close()
+	f2.close()
+
+
+def no_events():
+	global kps_max_label_updater
+	global max_kps
+	global no_events_e	
+	global timer2Running
+	if no_events_e > clock2_bound:
+		max_kps = 0
+		kps_max_label_updater = str(max_kps)
+		updateText()
+		timer2Running = False
+		no_events_e = 0
+		clock2.stop()
+	no_events_e = elapsed_t()
+		
 def timer():
 	global k
 	global timerStarted
 	global timerRunning
+	global timer2Running
 	global rate
 	global max_kps
 	global kps_label_updater
 	global kps_max_label_updater
-	_e = elapsed_t()
 
 	if timerStarted is False:		
 		timerStarted = True
-		print('timer started')
+
+	_e = elapsed_t()	
 
 	kps_ = kps(k,1)
 	kps_label_updater = str(kps_)
-	window.KPS_DISPLAY.SetLabel('<KPS>: ' + kps_label_updater)
+	updateText()
 
 	if kps_ > max_kps:
 		max_kps = kps_
 		kps_max_label_updater = str(max_kps)
-		window.KPS_MAX_DISPLAY.SetLabel('<MAX_KPS>: ' + kps_max_label_updater)
+		updateText()
 
-	if _e >= bound+rate*10:		
-		window.KPS_DISPLAY.SetLabel('<KPS>: 0')
-		print('timer stoped, max kps:', max_kps)
-		reset()	
+	if _e >= bound+rate*10:	
+		if timer2Running is False:
+			timer2Running = True
+			clock2.start(clock2_bound)
+		reset()
 		clock.stop()
 
-
-def clockSchedule():
+def clockSchedule(c):
 	global timerRunning
 	global k
+	global elapsed_chain
+	global no_events_e
+	no_events_e = 0
+	elapsed_chain.append(elapsed_t())
 	k += 1
 	if timerRunning is False:
-		timerRunning = True
-		clock.start(rate)
+		timerRunning = True		
+		clock.start(rate)	
 
 def elapsed_t():
 	global last
@@ -81,10 +117,13 @@ def reset():
 	global timerRunning
 	global last
 	global k
+	global kps_label_updater
 	timerStarted = False
-	timerRunning = False
+	timerRunning = False	
 	last[0] = 0
 	k = 0
+	kps_label_updater = str(0)
+	updateText()
 	elapsed_t()
 
 def kps(key, t):
@@ -93,29 +132,35 @@ def kps(key, t):
 	else:
 		return 0
 
-def pressed_T(e):
-	clockSchedule()
+'''TAIKO'''
+keyboard.on_press_key(20,clockSchedule) #T
+keyboard.on_press_key(21,clockSchedule) #Y
+keyboard.on_press_key(24,clockSchedule) #O
+keyboard.on_press_key(25,clockSchedule) #P
 
-def pressed_Y(e):
-	clockSchedule()
+'''CTB'''
+keyboard.on_press_key(30,clockSchedule) #A
+keyboard.on_press_key(75,clockSchedule) #4
+keyboard.on_press_key(77,clockSchedule) #5
 
-def pressed_O(e):
-	clockSchedule()
+'''MANIA'''
+keyboard.on_press_key(31,clockSchedule) #S
+keyboard.on_press_key(32,clockSchedule) #D
+keyboard.on_press_key(33,clockSchedule) #F
+keyboard.on_press_key(57,clockSchedule) #SPACE
+keyboard.on_press_key(36,clockSchedule) #J
+keyboard.on_press_key(37,clockSchedule) #K
+keyboard.on_press_key(38,clockSchedule) #L
 
-def pressed_P(e):
-	clockSchedule()
+'''OSU'''
+keyboard.on_press_key(51,clockSchedule) #K
+keyboard.on_press_key(52,clockSchedule) #L
 
-
-'''UNIQUE LISTENERS'''
-keyboard.on_press_key(20,pressed_T)
-keyboard.on_press_key(21,pressed_Y)
-keyboard.on_press_key(24,pressed_O)
-keyboard.on_press_key(25,pressed_P)
-
-'''COCK'''
+'''CLOCK'''
 clock = task.LoopingCall(timer)
+clock2 = task.LoopingCall(no_events)
 
-'''WX'''
+'''GUI
 class construct_Frame(wx.Frame):
 	def __init__(self, parent, ID, title, size):
 		# <Frame constructor>
@@ -147,6 +192,7 @@ class construct_App(wx.App):
 # register the App instance with Twisted:
 window = construct_App(0)
 reactor.registerWxApp(window)
+'''
 
 # start the event loop:
 reactor.run()
