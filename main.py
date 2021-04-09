@@ -102,7 +102,7 @@ def clockSchedule(c):
 	k += 1
 	if timerRunning is False:
 		timerRunning = True
-		if clock.running is False:
+		if clock.running is False: # double check for clock already started bug
 			clock.start(rate)	
 
 def elapsed_t():
