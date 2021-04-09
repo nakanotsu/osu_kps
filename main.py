@@ -2,15 +2,15 @@
 import keyboard
 import time
 import math
-# import wx
-# from twisted.internet import wxreactor
+import wx
+from twisted.internet import wxreactor
 # install before importing reactor.
-# wxreactor.install() 
+wxreactor.install() 
 from twisted.internet import task, reactor
 import sys
 import warnings
 # ignore dumb warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+# warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 ID_EXIT = 101
 win_size = 300, 200
@@ -36,15 +36,15 @@ timerStarted = False
 def updateText():
 	global kps_label_updater
 	global kps_max_label_updater
+	global open_files
+	global f
+	global f2
 	window.KPS_DISPLAY.SetLabel('<KPS>: ' + kps_label_updater)
 	window.KPS_MAX_DISPLAY.SetLabel('<MAX_KPS>: ' + kps_max_label_updater)
-	f = open("kps.txt", "w")
-	f2 = open("max_kps.txt", "w")
-	f.write(kps_label_updater)
-	f2.write(kps_max_label_updater)
-	f.close()
-	f2.close()
-
+	with open("kps.txt", "w") as f:
+		f.write(kps_label_updater)
+	with open("max_kps.txt", "w") as f2:
+		f2.write(kps_max_label_updater)	
 
 def no_events():
 	global kps_max_label_updater
@@ -57,8 +57,9 @@ def no_events():
 		updateText()
 		timer2Running = False
 		no_events_e = 0
-		clock2.stop()
+		clock2.stop()		
 	no_events_e = elapsed_t()
+
 		
 def timer():
 	global k
@@ -100,8 +101,9 @@ def clockSchedule(c):
 	elapsed_chain.append(elapsed_t())
 	k += 1
 	if timerRunning is False:
-		timerRunning = True		
-		clock.start(rate)	
+		timerRunning = True
+		if clock.running is False:
+			clock.start(rate)	
 
 def elapsed_t():
 	global last
@@ -132,35 +134,25 @@ def kps(key, t):
 	else:
 		return 0
 
-'''TAIKO'''
-keyboard.on_press_key(20,clockSchedule) #T
-keyboard.on_press_key(21,clockSchedule) #Y
-keyboard.on_press_key(24,clockSchedule) #O
-keyboard.on_press_key(25,clockSchedule) #P
+def listener_checker():
+	print('CLOCKS RUNNING...')
+	print('clock(timer): ', clock.running)
+	print('clock(no_events): ', clock2.running)
+	print('clock(listener_checker): ', clock3.running)	
+	'''LISTENER'''
+	keyboard.unhook_all() #PREVENTS LISTENER IS REMOVED BUG, REMOVE HOOK, THEN ADD AGAIN EVERY SECOND.
+	print('UNHOOKED')
+	keyboard.on_press(clockSchedule)
+	print('HOOKED')
+	print('---')
 
-'''CTB'''
-keyboard.on_press_key(30,clockSchedule) #A
-keyboard.on_press_key(75,clockSchedule) #4
-keyboard.on_press_key(77,clockSchedule) #5
 
-'''MANIA'''
-keyboard.on_press_key(31,clockSchedule) #S
-keyboard.on_press_key(32,clockSchedule) #D
-keyboard.on_press_key(33,clockSchedule) #F
-keyboard.on_press_key(57,clockSchedule) #SPACE
-keyboard.on_press_key(36,clockSchedule) #J
-keyboard.on_press_key(37,clockSchedule) #K
-keyboard.on_press_key(38,clockSchedule) #L
-
-'''OSU'''
-keyboard.on_press_key(51,clockSchedule) #K
-keyboard.on_press_key(52,clockSchedule) #L
-
-'''CLOCK'''
+'''CLOCKS'''
 clock = task.LoopingCall(timer)
 clock2 = task.LoopingCall(no_events)
+clock3 = task.LoopingCall(listener_checker)
 
-'''GUI
+'''GUI'''
 class construct_Frame(wx.Frame):
 	def __init__(self, parent, ID, title, size):
 		# <Frame constructor>
@@ -192,7 +184,8 @@ class construct_App(wx.App):
 # register the App instance with Twisted:
 window = construct_App(0)
 reactor.registerWxApp(window)
-'''
-
 # start the event loop:
+clock3.start(1)
 reactor.run()
+# print (reactor stopped?)
+print('reactor end')
