@@ -1,2 +1,2 @@
 # osu_kps
-kps with GUI
+kps with GUI/NO GUI
